@@ -33,7 +33,14 @@ def fetch_point(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
         "timezone": "Europe/London",
     }
     for attempt in range(5):
-        r = requests.get(URL, params=params, timeout=300)
+        try:
+            # a stalled TLS handshake counts against the read timeout, so keep it short and retry
+            r = requests.get(URL, params=params, timeout=(15, 120))
+        except (requests.ConnectionError, requests.Timeout):  # dropped or stalled connection
+            if attempt == 4:
+                raise
+            time.sleep(10 * 2**attempt)
+            continue
         if r.status_code == 429:  # rate limited: back off and retry
             time.sleep(60 * (attempt + 1))
             continue
