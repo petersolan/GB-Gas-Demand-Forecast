@@ -15,7 +15,7 @@ concurrency: daily-forecast
 jobs:
   forecast:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60  # Open-Meteo can stall requests from shared GitHub runners; retries recover
     env:
       PYTHONPATH: src
     steps:
