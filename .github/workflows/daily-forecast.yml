@@ -1,0 +1,41 @@
+name: daily-forecast
+
+# Every afternoon: forecast tomorrow's gas day with the exported champion, score earlier forecasts
+# against the actuals published since, and commit both to monitoring/ (the live track record).
+on:
+  schedule:
+    - cron: "0 13 * * *"  # 13:00 UTC = 14:00 BST / 13:00 GMT, after the D+1 actuals; Actions can start late
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: daily-forecast
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: models/champion/requirements.txt
+      - name: Install
+        # the champion's own pinned requirements, so the pickled model loads exactly as trained
+        run: pip install -r models/champion/requirements.txt requests holidays
+      - name: Forecast tomorrow
+        run: python scripts/06_forecast.py --model models/champion --history-days 90
+      - name: Score live forecasts
+        run: python scripts/07_score.py
+      - name: Commit results
+        run: |
+          git config user.name "Peter S"
+          git config user.email "petersolan@users.noreply.github.com"
+          git add monitoring/
+          git diff --cached --quiet || git commit -m "Daily forecast $(date -u +%F)"
+          git push

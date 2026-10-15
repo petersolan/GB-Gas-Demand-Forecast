@@ -1,4 +1,7 @@
-"""Streamlit dashboard: backtest results, error map and the latest day-ahead forecast.
+"""Streamlit dashboard: backtest results, error map, the live track record and the latest forecast.
+
+Reads only committed files (results/, monitoring/), so it runs from a fresh clone or on Streamlit
+Community Cloud with app/requirements.txt.
 
 streamlit run app/dashboard.py
 """
@@ -10,12 +13,11 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from pyproj import Transformer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from gasfc.backtest import scores, scores_by_ldz, skill  # noqa: E402
-from gasfc.config import LDZ_NAMES, PROCESSED  # noqa: E402
-from gasfc.geography import assign_ldz  # noqa: E402
+from gasfc.config import LDZ_NAMES, MONITORING, RESULTS  # noqa: E402
+from gasfc.monitoring import WINDOW_DAYS, summary  # noqa: E402
 
 MODEL = "gbm_ng_correction"
 MODELS = [
@@ -40,20 +42,18 @@ st.set_page_config(page_title="GB gas demand forecast", layout="wide")
 
 
 @st.cache_data
-def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | None]:
-    preds = pd.read_parquet(PROCESSED / "backtest_predictions.parquet")
-    cells = pd.read_parquet(PROCESSED / "population_cells.parquet")
-    cells["ldz"] = assign_ldz(cells)
-    lon, lat = Transformer.from_crs(27700, 4326, always_xy=True).transform(
-        cells["easting"], cells["northing"]
-    )
-    cells["lon"], cells["lat"] = lon, lat
-    fc_path = PROCESSED / "forecasts.parquet"
-    forecasts = pd.read_parquet(fc_path) if fc_path.exists() else None
-    return preds, cells, forecasts
+def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | None, pd.DataFrame | None]:
+    preds = pd.read_parquet(RESULTS / "backtest_predictions.parquet")
+    cells = pd.read_parquet(RESULTS / "population_cells.parquet")
+
+    def csv(name: str, dates: list[str]) -> pd.DataFrame | None:
+        path = MONITORING / name
+        return pd.read_csv(path, parse_dates=dates) if path.exists() else None
+
+    return preds, cells, csv("forecasts.csv", ["gas_day", "issued_at"]), csv("scores.csv", ["gas_day"])
 
 
-preds, cells, forecasts = load()
+preds, cells, forecasts, live = load()
 table = scores(preds, MODELS)
 table["skill"] = skill(table)
 
@@ -178,13 +178,53 @@ fig.update_layout(
 )
 st.plotly_chart(fig, width="stretch")
 
+st.subheader("Live track record")
+if live is None or live.empty:
+    st.info(
+        "Forecasts are issued every afternoon by a scheduled GitHub Action and scored here as the "
+        "actuals are published (D+1, closed out at D+6). The first scores appear two days after launch."
+    )
+else:
+    live["in_band"] = live["demand"].between(live["p10"], live["p90"])
+    s = summary(live)
+    c1, c2, c3 = st.columns(3)
+    c1.metric(f"Model MAPE, last {s['days']} days", f"{s['mape_model']:.2f}%")
+    c2.metric("National Gas day-ahead MAPE", f"{s['mape_ng']:.2f}%")
+    c3.metric("P10-P90 coverage", f"{s['coverage']:.0%}")
+    by_day = live.groupby("gas_day")[["ape_model", "ape_ng"]].mean().reset_index()
+    by_day = by_day.rename(columns={"ape_model": "Model", "ape_ng": LABELS["ng_forecast_da"]}).melt(
+        id_vars="gas_day", var_name="forecast", value_name="MAPE %"
+    )
+    fig = px.line(
+        by_day,
+        x="gas_day",
+        y="MAPE %",
+        color="forecast",
+        markers=True,
+        height=300,
+        color_discrete_sequence=["#1f77b4", "#ff7f0e"],
+    )
+    fig.update_layout(
+        margin={"t": 10, "b": 10}, legend={"orientation": "h", "y": 1.1, "title": ""}, xaxis_title=""
+    )
+    st.plotly_chart(fig, width="stretch")
+    st.caption(
+        f"Live forecasts, scored as actuals arrive; headline figures over the last {WINDOW_DAYS} days."
+    )
+
 if forecasts is not None and not forecasts.empty:
     st.subheader("Latest day-ahead forecast")
-    latest = forecasts[forecasts["issued_at"] == forecasts["issued_at"].max()].copy()
+    latest = forecasts[forecasts["gas_day"] == forecasts["gas_day"].max()].copy()
     latest["LDZ"] = latest["ldz"].map(lambda z: f"{z}: {LDZ_NAMES[z]}")
     st.caption(
         f"Gas day {latest['gas_day'].iloc[0]:%A %d %B %Y}, issued {latest['issued_at'].iloc[0]:%d %b %H:%M}"
     )
     st.dataframe(
-        latest[["LDZ", "forecast", "p10", "p90"]].set_index("LDZ").style.format("{:.2f}"), width="stretch"
+        latest[["LDZ", "forecast", "p10", "p90", "ng_forecast_da"]]
+        .rename(
+            columns={"forecast": "Forecast", "p10": "P10", "p90": "P90", "ng_forecast_da": "National Gas"}
+        )
+        .set_index("LDZ")
+        .style.format("{:.2f}"),
+        width="stretch",
     )

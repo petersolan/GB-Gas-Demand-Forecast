@@ -1,0 +1,50 @@
+artifact_path: file:C:/Data/github/GB-Gas-Demand-Forecast/mlruns/2/models/m-ee44988275ae459197a7c8042cae7dbf/artifacts
+flavors:
+  python_function:
+    cloudpickle_version: 3.1.2
+    code: code
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.pyfunc.model
+    python_model: python_model.pkl
+    python_version: 3.12.15
+    streamable: false
+is_signature_from_type_hint: false
+mlflow_version: 3.17.1
+model_id: m-ee44988275ae459197a7c8042cae7dbf
+model_size_bytes: 6426511
+model_uuid: m-ee44988275ae459197a7c8042cae7dbf
+prompts: null
+run_id: 0307073ad29d4eb48bf20469f938c011
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "string", "name": "ldz", "required": true}, {"type": "datetime",
+    "name": "gas_day", "required": true}, {"type": "double", "name": "demand_lag2",
+    "required": false}, {"type": "double", "name": "demand_lag7", "required": false},
+    {"type": "double", "name": "demand_mean_2_8", "required": false}, {"type": "double",
+    "name": "cwv_actual_lag2", "required": true}, {"type": "double", "name": "cwv_actual_lag7",
+    "required": true}, {"type": "integer", "name": "dow", "required": true}, {"type":
+    "long", "name": "is_weekend", "required": true}, {"type": "long", "name": "is_holiday",
+    "required": true}, {"type": "long", "name": "christmas", "required": true}, {"type":
+    "double", "name": "doy_sin", "required": true}, {"type": "double", "name": "doy_cos",
+    "required": true}, {"type": "double", "name": "cwv_forecast_d1", "required": true},
+    {"type": "double", "name": "temp_mean", "required": true}, {"type": "double",
+    "name": "temp_min", "required": true}, {"type": "double", "name": "temp_max",
+    "required": true}, {"type": "double", "name": "wind_mean", "required": true},
+    {"type": "double", "name": "solar_mean", "required": true}, {"type": "double",
+    "name": "hdd", "required": true}, {"type": "double", "name": "wind_chill", "required":
+    true}, {"type": "double", "name": "temp_mean_prev", "required": true}, {"type":
+    "double", "name": "temp_mean_prev2", "required": true}, {"type": "double", "name":
+    "ng_forecast_da", "required": true}]'
+  outputs: '[{"type": "string", "name": "ldz", "required": true}, {"type": "datetime",
+    "name": "gas_day", "required": true}, {"type": "double", "name": "forecast", "required":
+    true}, {"type": "double", "name": "p10", "required": true}, {"type": "double",
+    "name": "p90", "required": true}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-10-15 14:45:32.717333'

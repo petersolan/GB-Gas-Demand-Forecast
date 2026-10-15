@@ -1,6 +1,7 @@
 """Population-weighted weather points per LDZ, then gas-day weather from Open-Meteo.
 
-Writes data/processed/weather_points.parquet and data/processed/ldz_weather.parquet.
+Writes data/processed/weather_points.parquet and data/processed/ldz_weather.parquet, and (with the
+census cells) reference/weather_points.csv and results/population_cells.parquet for the dashboard map.
 
     python scripts/03_weather.py
 """
@@ -9,8 +10,8 @@ from datetime import date, timedelta
 
 import pandas as pd
 
-from gasfc.config import HISTORY_START, PROCESSED, ROOT
-from gasfc.geography import assign_ldz, weather_points
+from gasfc.config import HISTORY_START, PROCESSED, RESULTS, ROOT
+from gasfc.geography import assign_ldz, map_cells, weather_points
 from gasfc.weather import download_points, ldz_weather
 
 POINTS_CSV = ROOT / "reference" / "weather_points.csv"
@@ -23,6 +24,8 @@ def main() -> None:
         cells["ldz"] = assign_ldz(cells)
         points = weather_points(cells)
         points.round(6).to_csv(POINTS_CSV, index=False)
+        RESULTS.mkdir(exist_ok=True)
+        map_cells(cells).to_parquet(RESULTS / "population_cells.parquet", index=False)
     else:  # no census data locally: use the committed points
         points = pd.read_csv(POINTS_CSV)
     points.to_parquet(PROCESSED / "weather_points.parquet", index=False)

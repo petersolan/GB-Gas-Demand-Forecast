@@ -1,5 +1,10 @@
 # GB-Gas-Demand-Forecast
 
+[![ci](https://github.com/petersolan/GB-Gas-Demand-Forecast/actions/workflows/ci.yml/badge.svg)](https://github.com/petersolan/GB-Gas-Demand-Forecast/actions/workflows/ci.yml)
+[![daily-forecast](https://github.com/petersolan/GB-Gas-Demand-Forecast/actions/workflows/daily-forecast.yml/badge.svg)](https://github.com/petersolan/GB-Gas-Demand-Forecast/actions/workflows/daily-forecast.yml)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](environment.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Day-ahead gas demand forecasts for the 13 Local Distribution Zones (LDZs) of Great Britain's gas
 network, using population-weighted weather and an MLOps workflow (MLflow tracking, model registry,
 scheduled forecasting), benchmarked against National Gas's own day-ahead forecast.
@@ -29,6 +34,14 @@ retrained monthly and using only information available at 14:00 on the day befor
   in 12 of 13 LDZs. The exception is Wales South, where the published actuals themselves drift.
 - **The P10-P90 range covers 81.6% of days** (target 80%) after conformal calibration; uncalibrated
   quantile models covered only 67%.
+
+## Live track record
+
+The backtest says how the model would have done; a scheduled GitHub Action says how it is doing. Every
+afternoon it forecasts tomorrow's gas day with the champion, scores earlier forecasts against the actuals
+published since, and commits both: [monitoring/](monitoring/) shows the last four weeks next to National
+Gas's own forecast, and the run is annotated with a warning if the model falls more than a point of
+MAPE behind it.
 
 ## Data quality findings
 
@@ -73,9 +86,15 @@ against the operator, day by day, on the same information that was available at 
 5. **Backtest** (`scripts/04_backtest.py`). Rolling origin: retrained every month on everything before
    it, forecasting that month, from October 2024. Every run is logged to MLflow.
 6. **Deployment** (`scripts/05_train_register.py`, `scripts/06_forecast.py`). The champion model is
-   registered in the MLflow Model Registry; the daily job loads it by alias and forecasts tomorrow.
-7. **Dashboard** (`app/dashboard.py`). Streamlit: model comparison, forecast vs actual with the
-   P10-P90 range, an error map, monthly error and the latest forecast.
+   registered in the MLflow Model Registry and exported to `models/champion/` with its pinned
+   requirements; committing that folder deploys it. The daily job loads it and forecasts tomorrow from
+   90 days of fresh data (features look back 8 days, the quality checks about 4 weeks).
+7. **Monitoring** (`scripts/07_score.py`, `.github/workflows/daily-forecast.yml`). Each forecast is
+   kept as first issued, scored once the actuals arrive (and rescored when the D+6 closeout replaces the
+   first value), with a drift warning against the benchmark.
+8. **Dashboard** (`app/dashboard.py`). Streamlit: model comparison, forecast vs actual with the
+   P10-P90 range, an error map, monthly error, the live track record and the latest forecast. It reads
+   only committed files (`results/`, `monitoring/`), so it runs from a fresh clone.
 
 ## Being fair to the benchmark
 
@@ -100,10 +119,8 @@ against the operator, day by day, on the same information that was available at 
 
 ## Next steps
 
-- Daily forecasts are appended to `data/processed/forecasts.parquet`; scoring them as actuals arrive
-  would turn the backtest into live monitoring, with an alert when error drifts.
-- Schedule `06_forecast.py` (cron, GitHub Actions or Azure ML pipelines) and promote a new champion
-  only when it beats the current one on the latest months.
+- Retrain monthly in the scheduled job and promote the new model to champion only when it beats the
+  current one on the latest months (a challenger / champion gate).
 - More weather points per LDZ, and a peak-day view (the 1-in-20 cold day matters most for planning).
 
 ## Run it
@@ -117,8 +134,9 @@ python scripts/01_download_nationalgas.py      # National Gas data, quality chec
 python scripts/02_population_cells.py          # optional: needs GB-Census-Population-Map outputs
 python scripts/03_weather.py                   # weather points (committed in reference/) + Open-Meteo
 python scripts/04_backtest.py                  # rolling backtest, logged to MLflow
-python scripts/05_train_register.py            # train and register the champion
+python scripts/05_train_register.py            # train, register and export the champion
 python scripts/06_forecast.py                  # tomorrow's forecast with the champion
+python scripts/07_score.py                     # score live forecasts as actuals arrive
 
 mlflow ui --backend-store-uri sqlite:///mlflow.db
 streamlit run app/dashboard.py

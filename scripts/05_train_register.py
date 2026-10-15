@@ -1,10 +1,14 @@
 """Train the forecaster on all trusted history and register it in MLflow as the new champion.
 
 The registered model is a pyfunc (point forecast + P10 / P90), so the daily job and any serving layer
-load it by alias without knowing how it was built:
+load it by alias without knowing how it was built. The champion is then exported to models/champion,
+which is committed: pushing it is the deployment step for the daily GitHub Action.
 
     python scripts/05_train_register.py
+    python scripts/05_train_register.py --export-only   # re-export the current champion
 """
+
+import argparse
 
 import mlflow
 import pandas as pd
@@ -14,10 +18,16 @@ from mlflow.models import infer_signature
 from gasfc.config import PROCESSED
 from gasfc.features import build
 from gasfc.serving import FEATURES, DemandForecaster
-from gasfc.tracking import MODEL_NAME, setup
+from gasfc.tracking import MODEL_NAME, export_champion, setup
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--export-only", action="store_true", help="skip training, export the champion")
+    if ap.parse_args().export_only:
+        export_champion()
+        return
+
     daily = pd.read_parquet(PROCESSED / "ldz_daily.parquet")
     weather = pd.read_parquet(PROCESSED / "ldz_weather.parquet")
     table = build(daily, weather)
@@ -50,6 +60,7 @@ def main() -> None:
         version = info.registered_model_version
         client.set_registered_model_alias(MODEL_NAME, "champion", version)
         print(f"registered {MODEL_NAME} v{version} as champion (run {run.info.run_id})")
+    export_champion()
 
 
 if __name__ == "__main__":

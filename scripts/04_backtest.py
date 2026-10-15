@@ -1,7 +1,7 @@
 """Rolling-origin backtest of all candidate models against National Gas's day-ahead forecast.
 
 Retrains every model monthly from the test start and logs each one to MLflow (scores, per-LDZ errors).
-Writes data/processed/backtest_predictions.parquet for the dashboard.
+Writes results/backtest_predictions.parquet (committed) for the dashboard.
 
     python scripts/04_backtest.py --start 2024-10-01
 """
@@ -14,7 +14,7 @@ import mlflow
 import pandas as pd
 
 from gasfc.backtest import backtest, interval_coverage, scores, scores_by_ldz, skill
-from gasfc.config import PROCESSED
+from gasfc.config import PROCESSED, RESULTS
 from gasfc.features import build
 from gasfc.models import CalibratedBand, candidates
 from gasfc.serving import FEATURES
@@ -35,7 +35,8 @@ def main() -> None:
     models = candidates()
     models += [CalibratedBand(FEATURES)]  # writes band_p10 and band_p90
     preds = backtest(table, models, a.start)
-    preds.to_parquet(PROCESSED / "backtest_predictions.parquet", index=False)
+    RESULTS.mkdir(exist_ok=True)
+    preds.to_parquet(RESULTS / "backtest_predictions.parquet", index=False)
 
     point = [m.name for m in models if m.name != "band"]
     table_scores = scores(preds, point)

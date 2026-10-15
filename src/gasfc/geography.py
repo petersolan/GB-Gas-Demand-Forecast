@@ -93,3 +93,12 @@ def weather_points(cells: pd.DataFrame, per_ldz: int = 3, seed: int = 0) -> pd.D
     pts = pd.DataFrame(rows, columns=["ldz", "point", "easting", "northing", "latitude", "longitude", "pop"])
     pts["weight"] = pts["pop"] / pts.groupby("ldz")["pop"].transform("sum")
     return pts.drop(columns="pop").sort_values(["ldz", "point"]).reset_index(drop=True)
+
+
+def map_cells(cells: pd.DataFrame) -> pd.DataFrame:
+    """Population cells with their LDZ in WGS84, the small table the dashboard map needs."""
+    lon, lat = Transformer.from_crs(27700, 4326, always_xy=True).transform(
+        cells["easting"].to_numpy(), cells["northing"].to_numpy()
+    )
+    out = pd.DataFrame({"ldz": cells["ldz"], "lat": lat, "lon": lon, "population": cells["population"]})
+    return out.round({"lat": 4, "lon": 4}).reset_index(drop=True)

@@ -6,6 +6,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
 RAW = DATA / "raw"
 PROCESSED = DATA / "processed"
+# committed outputs: what the dashboard and the daily job need without rerunning the pipeline
+RESULTS = ROOT / "results"  # backtest predictions and the population map
+MONITORING = ROOT / "monitoring"  # live forecasts and their scores, appended daily
+CHAMPION_DIR = ROOT / "models" / "champion"  # the registered champion, exported for deployment
 
 # The 13 Local Distribution Zones, in National Gas publication order.
 LDZS = ["EA", "EM", "NE", "NO", "NT", "NW", "SC", "SE", "SO", "SW", "WM", "WN", "WS"]

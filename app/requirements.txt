@@ -1,0 +1,5 @@
+# Streamlit Community Cloud: the dashboard only reads committed results, so it needs no ML stack
+streamlit
+plotly
+pandas
+pyarrow
