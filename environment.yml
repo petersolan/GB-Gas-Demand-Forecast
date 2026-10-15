@@ -1,0 +1,20 @@
+name: gasfc
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas
+  - numpy
+  - pyarrow
+  - python-duckdb
+  - requests
+  - scikit-learn
+  - lightgbm
+  - mlflow
+  - geopandas
+  - rasterio
+  - holidays
+  - plotly
+  - streamlit
+  - pytest
+  - ruff
