@@ -20,7 +20,7 @@ import pandas as pd
 
 from gasfc.config import HISTORY_START, LDZS, MONITORING, PROCESSED, ROOT, SERIES
 from gasfc.features import build
-from gasfc.nationalgas import build_daily, day_ahead_forecast, download, latest_value, load
+from gasfc.nationalgas import as_of_cutoff, build_daily, day_ahead_forecast, download, load
 from gasfc.tracking import MODEL_NAME, setup
 from gasfc.weather import download_points, ldz_weather
 
@@ -45,8 +45,8 @@ def main() -> None:
     daily.to_parquet(PROCESSED / "ldz_daily.parquet", index=False)
 
     # tomorrow has no actuals yet: add its rows with what National Gas published today, the CWV
-    # forecast and its own day-ahead demand forecast (latest vintage before the 14:00 cutoff)
-    cwv = latest_value(load("cwv_forecast_d1"), "cwv_forecast_d1")
+    # forecast and its own day-ahead demand forecast (latest versions before the 14:00 cutoff)
+    cwv = as_of_cutoff(load("cwv_forecast_d1"), "cwv_forecast_d1")
     ng = day_ahead_forecast(load("demand_forecast"))
     future = (
         pd.DataFrame({"gas_day": target, "ldz": LDZS})

@@ -37,7 +37,7 @@ SERIES = {
     "demand_actual_d6": [f"PUBOB{i}" for i in range(639, 652)],  # closed-out actual, D+6
     "demand_forecast": [f"PUBOB{i}" for i in range(609, 622)],  # National Gas forecast, all vintages
     "cwv_actual": [f"PUBOB{i}" for i in range(3700, 3713)],  # composite weather variable, actual
-    "cwv_forecast_d1": [f"PUBOB{i}" for i in range(3726, 3739)],  # CWV forecast issued the day before
+    "cwv_forecast_d1": [f"PUBOB{i}" for i in range(3726, 3739)],  # CWV forecast, all vintages
 }
 
 # Data before this date has rolled off the portal's 5-year retention.

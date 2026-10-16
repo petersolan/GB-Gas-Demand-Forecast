@@ -19,6 +19,10 @@ from gasfc.quality import choose_target
 URL = "https://data.nationalgas.com/api/find-gas-data-download"
 LDZ_RE = re.compile(r"LDZ ?\((\w{2})\)")
 COLUMNS = ["gas_day", "ldz", "item", "value", "applicable_at", "generated_at"]
+# forecasts are reissued through the day before (CWV at 08:00, 12:00, 15:00 and 23:00): keep every
+# version, so the one available at the forecast time can be picked rather than the last of the day
+VINTAGED = {"demand_forecast", "cwv_forecast_d1"}
+CUTOFF_HOUR = 14  # forecast time: 14:00 on the day before the gas day
 
 
 def fetch(ids: list[str], date_from: str, date_to: str, latest: bool) -> str:
@@ -78,7 +82,7 @@ def download(series: str, start: str, end: date, refresh_last: int = 2) -> None:
     folder = RAW / series
     folder.mkdir(parents=True, exist_ok=True)
     months = month_starts(start, end)
-    latest = series != "demand_forecast"  # forecasts: keep every vintage, the benchmark needs D-1
+    latest = series not in VINTAGED
     for i, m in enumerate(months):
         path = folder / f"{m:%Y-%m}.csv"
         if path.exists() and i < len(months) - refresh_last:
@@ -95,16 +99,21 @@ def load(series: str) -> pd.DataFrame:
     return pd.concat([f for f in frames if not f.empty], ignore_index=True)
 
 
-def day_ahead_forecast(fc: pd.DataFrame, cutoff_hour: int = 14) -> pd.DataFrame:
-    """National Gas's day-ahead forecast: the latest vintage issued before cutoff_hour on D-1.
+def as_of_cutoff(fc: pd.DataFrame, name: str, cutoff_hour: int = CUTOFF_HOUR) -> pd.DataFrame:
+    """The latest version of a forecast issued by cutoff_hour on the day before the gas day.
 
-    The day-ahead forecast is the fair benchmark for a model that runs on the afternoon before the
-    gas day; the final within-day vintage already knows most of the day's weather.
+    A model that runs on the afternoon before the gas day can only use what was published by then;
+    later versions (and the final within-day one) already know more of the day's weather.
     """
     cutoff = fc["gas_day"] - pd.Timedelta(days=1) + pd.Timedelta(hours=cutoff_hour)
     eligible = fc[fc["applicable_at"] <= cutoff]
     idx = eligible.groupby(["gas_day", "ldz"])["applicable_at"].idxmax()
-    out = eligible.loc[idx, ["gas_day", "ldz", "value"]].rename(columns={"value": "ng_forecast_da"})
+    return eligible.loc[idx, ["gas_day", "ldz", "value"]].rename(columns={"value": name})
+
+
+def day_ahead_forecast(fc: pd.DataFrame, cutoff_hour: int = CUTOFF_HOUR) -> pd.DataFrame:
+    """National Gas's day-ahead demand forecast, the fair benchmark for a model run at the cutoff."""
+    out = as_of_cutoff(fc, "ng_forecast_da", cutoff_hour)
     # a few published forecasts are 0: treat them as missing, so the correction model falls back on
     # weather and lags instead of trusting them, and the benchmark is not scored on a broken value
     out["ng_forecast_da"] = out["ng_forecast_da"].where(out["ng_forecast_da"] > 0)
@@ -123,7 +132,7 @@ def build_daily() -> pd.DataFrame:
     others = [
         latest_value(load("demand_actual_d6"), "demand_d6"),
         latest_value(load("cwv_actual"), "cwv_actual"),
-        latest_value(load("cwv_forecast_d1"), "cwv_forecast_d1"),
+        as_of_cutoff(load("cwv_forecast_d1"), "cwv_forecast_d1"),
         day_ahead_forecast(load("demand_forecast")),
     ]
     for other in others:

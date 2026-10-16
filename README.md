@@ -13,26 +13,26 @@ scheduled forecasting), benchmarked against National Gas's own day-ahead forecas
 
 ## Results
 
-Rolling-origin backtest, October 2024 to October 2026 (two winters, 9,453 LDZ-days), every model
+Rolling-origin backtest, October 2024 to October 2026 (two winters, 9,465 LDZ-days), every model
 retrained monthly and using only information available at 14:00 on the day before. Lower is better.
 
 | Model | MAPE | Winter (Nov-Mar) | Summer | vs National Gas |
 | --- | --- | --- | --- | --- |
-| National Gas day-ahead forecast (benchmark) | 5.07% | 4.83% | 5.24% | |
-| Same day last week | 17.30% | 18.90% | 16.18% | -241% |
-| CWV regression (traditional) | 7.62% | 5.07% | 9.40% | -50% |
-| LightGBM + National Gas CWV | 5.93% | 5.14% | 6.49% | -17% |
+| National Gas day-ahead forecast (benchmark) | 5.07% | 4.83% | 5.23% | |
+| Same day last week | 17.31% | 18.90% | 16.19% | -242% |
+| CWV regression (traditional) | 7.69% | 5.20% | 9.43% | -52% |
+| LightGBM + National Gas CWV | 6.05% | 5.34% | 6.54% | -19% |
 | LightGBM + population-weighted weather | 5.59% | 4.63% | 6.27% | -10% |
-| LightGBM + CWV + population-weighted weather | 5.41% | 4.39% | 6.12% | -7% |
-| **LightGBM correcting the National Gas forecast** | **4.49%** | **3.82%** | **4.96%** | **+11.4%** |
+| LightGBM + CWV + population-weighted weather | 5.43% | 4.45% | 6.12% | -7% |
+| **LightGBM correcting the National Gas forecast** | **4.49%** | **3.83%** | **4.95%** | **+11.3%** |
 
 - **Population-weighted weather beats the operator's own weather variable as a model input** (5.59%
-  vs 5.93%), and in winter, without seeing National Gas's forecast at all, it already beats it (4.63%
+  vs 6.05%), and in winter, without seeing National Gas's forecast at all, it already beats it (4.63%
   vs 4.83%).
 - **The champion learns National Gas's systematic errors** from its published day-ahead forecast
   together with the weather, lags and calendar: 11% lower error overall, 21% lower in winter, and better
   in 12 of 13 LDZs. The exception is Wales South, where the published actuals themselves drift.
-- **The P10-P90 range covers 81.6% of days** (target 80%) after conformal calibration; uncalibrated
+- **The P10-P90 range covers 81.1% of days** (target 80%) after conformal calibration; uncalibrated
   quantile models covered only 67%.
 
 ## Live track record
@@ -104,6 +104,9 @@ against the operator, day by day, on the same information that was available at 
 - **Weather inputs are forecasts made the day before.** Open-Meteo's Previous Runs API keeps what each
   forecast said one day ahead from February 2024. The test period (October 2024 onwards) uses only those;
   earlier training years use same-day weather, the best available.
+- **National Gas's CWV forecast is the version available at 14:00 too.** It is reissued at 08:00,
+  12:00, 15:00 and 23:00 on the day before; the model uses the 12:00 issue, not the later and more
+  accurate ones (the 23:00 issue is about 12% closer to the actual CWV).
 - **National Gas's benchmark is its day-ahead forecast**: the latest version issued before 14:00 on
   the day before, not the final within-day revision.
 

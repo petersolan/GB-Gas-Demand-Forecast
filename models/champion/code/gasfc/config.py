@@ -6,6 +6,10 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "data"
 RAW = DATA / "raw"
 PROCESSED = DATA / "processed"
+# committed outputs: what the dashboard and the daily job need without rerunning the pipeline
+RESULTS = ROOT / "results"  # backtest predictions and the population map
+MONITORING = ROOT / "monitoring"  # live forecasts and their scores, appended daily
+CHAMPION_DIR = ROOT / "models" / "champion"  # the registered champion, exported for deployment
 
 # The 13 Local Distribution Zones, in National Gas publication order.
 LDZS = ["EA", "EM", "NE", "NO", "NT", "NW", "SC", "SE", "SO", "SW", "WM", "WN", "WS"]
@@ -33,7 +37,7 @@ SERIES = {
     "demand_actual_d6": [f"PUBOB{i}" for i in range(639, 652)],  # closed-out actual, D+6
     "demand_forecast": [f"PUBOB{i}" for i in range(609, 622)],  # National Gas forecast, all vintages
     "cwv_actual": [f"PUBOB{i}" for i in range(3700, 3713)],  # composite weather variable, actual
-    "cwv_forecast_d1": [f"PUBOB{i}" for i in range(3726, 3739)],  # CWV forecast issued the day before
+    "cwv_forecast_d1": [f"PUBOB{i}" for i in range(3726, 3739)],  # CWV forecast, all vintages
 }
 
 # Data before this date has rolled off the portal's 5-year retention.
