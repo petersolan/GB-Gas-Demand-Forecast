@@ -22,17 +22,17 @@ retrained monthly and using only information available at 14:00 on the day befor
 | Same day last week | 17.31% | 18.90% | 16.19% | -242% |
 | CWV regression (traditional) | 7.69% | 5.20% | 9.43% | -52% |
 | LightGBM + National Gas CWV | 6.05% | 5.34% | 6.54% | -19% |
-| LightGBM + population-weighted weather | 5.59% | 4.63% | 6.27% | -10% |
-| LightGBM + CWV + population-weighted weather | 5.43% | 4.45% | 6.12% | -7% |
-| **LightGBM correcting the National Gas forecast** | **4.49%** | **3.83%** | **4.95%** | **+11.3%** |
+| LightGBM + population-weighted weather | 5.79% | 4.94% | 6.39% | -14% |
+| LightGBM + CWV + population-weighted weather | 5.54% | 4.66% | 6.15% | -9% |
+| **LightGBM correcting the National Gas forecast** | **4.46%** | **3.84%** | **4.90%** | **+11.9%** |
 
-- **Population-weighted weather beats the operator's own weather variable as a model input** (5.59%
-  vs 6.05%), and in winter, without seeing National Gas's forecast at all, it already beats it (4.63%
-  vs 4.83%).
+- **Population-weighted weather beats the operator's own weather variable as a model input** (5.79%
+  vs 6.05%), and the two together, without seeing National Gas's forecast at all, already beat it in
+  winter (4.66% vs 4.83%).
 - **The champion learns National Gas's systematic errors** from its published day-ahead forecast
-  together with the weather, lags and calendar: 11% lower error overall, 21% lower in winter, and better
+  together with the weather, lags and calendar: 12% lower error overall, 21% lower in winter, and better
   in 12 of 13 LDZs. The exception is Wales South, where the published actuals themselves drift.
-- **The P10-P90 range covers 81.1% of days** (target 80%) after conformal calibration; uncalibrated
+- **The P10-P90 range covers 81.4% of days** (target 80%) after conformal calibration; uncalibrated
   quantile models covered only 67%.
 
 ## Live track record
@@ -101,9 +101,12 @@ against the operator, day by day, on the same information that was available at 
 - **Forecast time is 14:00 on the day before.** At that point the latest published actual is for two
   days earlier, so demand lags start at two days, using the value that was published then (D+1), not the
   later closeout. A test checks this.
-- **Weather inputs are forecasts made the day before.** Open-Meteo's Previous Runs API keeps what each
-  forecast said one day ahead from February 2024. The test period (October 2024 onwards) uses only those;
-  earlier training years use same-day weather, the best available.
+- **Weather inputs are forecasts known by 14:00 the day before.** Open-Meteo's Previous Runs API keeps,
+  for every hour, what was predicted one, two or more days before it, from February 2024. One day before
+  is too late for the evening and night of the gas day (predicted after 14:00 the day before), so the
+  model uses the predictions made two days before each hour, all published by 05:00 the day before.
+  The daily job downloads exactly the same values. The test period (October 2024 onwards) uses only
+  those; earlier training years use same-day weather, the best available.
 - **National Gas's CWV forecast is the version available at 14:00 too.** It is reissued at 08:00,
   12:00, 15:00 and 23:00 on the day before; the model uses the 12:00 issue, not the later and more
   accurate ones (the 23:00 issue is about 12% closer to the actual CWV).

@@ -1,7 +1,7 @@
 import pandas as pd
 
 from gasfc.features import build, calendar
-from gasfc.weather import gas_day
+from gasfc.weather import AHEAD, VARIABLES, daily_features, gas_day
 
 
 def test_gas_day_runs_from_five_am():
@@ -41,3 +41,14 @@ def test_lags_only_use_data_available_at_forecast_time():
     t = build(daily, weather).set_index("gas_day")
     # forecasting 5 Jan at 14:00 on 4 Jan: the latest actual is 3 Jan's first published value
     assert t.loc["2025-01-05", "demand_lag2"] == 2
+
+
+def test_gas_day_weather_uses_forecasts_known_by_the_cutoff():
+    # 24 hours of one gas day: the value predicted two days before each hour wins over the latest one
+    hourly = pd.DataFrame({"time": pd.date_range("2025-01-02 05:00", periods=24, freq="h")})
+    for v in VARIABLES:
+        hourly[v] = 1.0  # latest forecast, effectively same-day weather
+        hourly[f"{v}_{AHEAD}"] = 3.0
+    out = daily_features(hourly)
+    assert out.loc[0, "temp_mean"] == 3.0
+    assert out.loc[0, "weather_source"] == "day_before"

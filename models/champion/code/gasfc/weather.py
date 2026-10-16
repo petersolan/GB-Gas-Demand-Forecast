@@ -1,9 +1,12 @@
 """Population-weighted weather per LDZ and gas day from Open-Meteo.
 
-The Previous Runs API keeps what forecasts said one day before (`*_previous_day1`) from early 2024,
-alongside the latest forecast for each hour (`*`, effectively same-day weather). A day-ahead model must
-only see the day-before forecast; earlier history has none, so training before 2024 falls back to the
-same-day values and the column `weather_source` says which was used.
+The Previous Runs API keeps, for every hour, what was predicted N days before it (`*_previous_dayN`,
+from early 2024), alongside the latest forecast (`*`, effectively same-day weather). The forecast is made
+at 14:00 on the day before the gas day (05:00 to 05:00), so the value predicted one day before an hour
+after 14:00 on the gas day was not known yet. Two days before was: those predictions date from 05:00
+two days before to 05:00 on the day before, and are exactly what the daily job can download at 14:00.
+Earlier history has none, so training before 2024 falls back to the same-day values and the column
+`weather_source` says which was used.
 
 Hourly values are aggregated over the gas day, 05:00 to 05:00 UK local time, then weighted across each
 LDZ's weather points by the share of its population they represent.
@@ -18,12 +21,13 @@ from gasfc.config import RAW
 
 URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
 VARIABLES = ["temperature_2m", "wind_speed_10m", "shortwave_radiation"]
+AHEAD = "previous_day2"  # predicted 48 hours before each hour: all known by 14:00 on the day before
 GAS_DAY_START_HOUR = 5
 
 
 def fetch_point(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
-    """Hourly day-before and same-day values for one point, in UK local time."""
-    hourly = VARIABLES + [f"{v}_previous_day1" for v in VARIABLES]
+    """Hourly ahead-of-time and same-day values for one point, in UK local time."""
+    hourly = VARIABLES + [f"{v}_{AHEAD}" for v in VARIABLES]
     params = {
         "latitude": lat,
         "longitude": lon,
@@ -59,12 +63,12 @@ def gas_day(times: pd.Series) -> pd.Series:
 
 
 def daily_features(hourly: pd.DataFrame) -> pd.DataFrame:
-    """Gas-day weather from hourly values, preferring the day-before forecast where it exists."""
+    """Gas-day weather from hourly values, preferring the ahead-of-time forecast where it exists."""
     h = hourly.copy()
     h["gas_day"] = gas_day(h["time"])
-    h["day_before"] = h[[f"{v}_previous_day1" for v in VARIABLES]].notna().all(axis=1)
+    h["day_before"] = h[[f"{v}_{AHEAD}" for v in VARIABLES]].notna().all(axis=1)
     for v in VARIABLES:
-        h[v] = h[f"{v}_previous_day1"].where(h["day_before"], h[v])
+        h[v] = h[f"{v}_{AHEAD}"].where(h["day_before"], h[v])
     g = h.groupby("gas_day")
     out = pd.DataFrame(
         {
@@ -88,10 +92,10 @@ def download_points(points: pd.DataFrame, start: str, end: str) -> None:
     folder.mkdir(parents=True, exist_ok=True)
     for p in points.itertuples():
         path = folder / f"{p.ldz}_{p.point}.parquet"
-        if not path.exists():
+        cached = pd.read_parquet(path) if path.exists() else None
+        if cached is None or f"{VARIABLES[0]}_{AHEAD}" not in cached:  # new point, or cached another lead
             fetch_point(p.latitude, p.longitude, start, end).to_parquet(path, index=False)
             continue
-        cached = pd.read_parquet(path)
         have = cached["time"].max()
         if have >= pd.Timestamp(end) + pd.Timedelta(hours=23):
             continue

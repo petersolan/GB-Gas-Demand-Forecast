@@ -1,4 +1,4 @@
-artifact_path: file:C:/Data/github/GB-Gas-Demand-Forecast/mlruns/2/models/m-66a54c0b061248fbac98443f8ffa9246/artifacts
+artifact_path: file:C:/Data/github/GB-Gas-Demand-Forecast/mlruns/2/models/m-8a211db9a02c4f9880be9e2827060e61/artifacts
 flavors:
   python_function:
     cloudpickle_version: 3.1.2
@@ -12,11 +12,11 @@ flavors:
     streamable: false
 is_signature_from_type_hint: false
 mlflow_version: 3.17.1
-model_id: m-66a54c0b061248fbac98443f8ffa9246
-model_size_bytes: 6431305
-model_uuid: m-66a54c0b061248fbac98443f8ffa9246
+model_id: m-8a211db9a02c4f9880be9e2827060e61
+model_size_bytes: 6428825
+model_uuid: m-8a211db9a02c4f9880be9e2827060e61
 prompts: null
-run_id: ac55edaec0634e41be50558af741e153
+run_id: fbcc7b2a4f604aca8353e21fb4319c43
 saved_input_example_info:
   artifact_path: input_example.json
   pandas_orient: split
@@ -47,4 +47,4 @@ signature:
     "name": "p90", "required": true}]'
   params: null
 type_hint_from_example: false
-utc_time_created: '2026-10-16 12:26:19.048523'
+utc_time_created: '2026-10-16 16:10:52.498855'
