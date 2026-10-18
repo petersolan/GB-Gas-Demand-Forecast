@@ -25,7 +25,8 @@ def report(scores: pd.DataFrame, s: dict, warning: str | None) -> str:
     lines += [
         f"Day-ahead forecasts issued daily by the champion model (`.github/workflows/daily-forecast.yml`), "
         f"scored against quality-checked actuals. Last {WINDOW_DAYS} days with actuals: "
-        f"{s['first_day']:%d %b} to {s['last_day']:%d %b %Y} ({s['days']} gas days, 13 LDZs).",
+        f"{s['first_day']:%d %b} to {s['last_day']:%d %b %Y} "
+        f"({s['days']} gas day{'s' if s['days'] != 1 else ''}, {s['ldz_days']} LDZ-days scored).",
         "",
         "| | MAPE |",
         "| --- | --- |",

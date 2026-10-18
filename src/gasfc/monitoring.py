@@ -30,6 +30,7 @@ def summary(scores: pd.DataFrame, window: int = WINDOW_DAYS) -> dict:
     both = recent.dropna(subset=["ape_ng"])
     return {
         "days": recent["gas_day"].nunique(),
+        "ldz_days": len(recent),  # fewer than 13 a day when an actual fails the quality check
         "first_day": recent["gas_day"].min(),
         "last_day": recent["gas_day"].max(),
         "mape_model": both["ape_model"].mean(),
