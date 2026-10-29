@@ -1,13 +1,13 @@
 # Live track record
 
-Day-ahead forecasts issued daily by the champion model (`.github/workflows/daily-forecast.yml`), scored against quality-checked actuals. Last 28 days with actuals: 16 Oct to 27 Oct 2026 (12 gas days, 153 LDZ-days scored).
+Day-ahead forecasts issued daily by the champion model (`.github/workflows/daily-forecast.yml`), scored against quality-checked actuals. Last 28 days with actuals: 16 Oct to 28 Oct 2026 (13 gas days, 164 LDZ-days scored).
 
 | | MAPE |
 | --- | --- |
-| Model | 5.64% |
-| National Gas day-ahead | 6.25% |
+| Model | 6.12% |
+| National Gas day-ahead | 6.57% |
 
-P10-P90 range coverage: 80% (target 80%).
+P10-P90 range coverage: 78% (target 80%).
 
 No drift: the model is level with or ahead of the benchmark.
 
@@ -15,15 +15,16 @@ No drift: the model is level with or ahead of the benchmark.
 
 | Gas day | Model MAPE | National Gas MAPE |
 | --- | --- | --- |
+| Wed 28 Oct | 12.67% | 10.73% |
 | Tue 27 Oct | 13.24% | 16.89% |
 | Mon 26 Oct | 6.75% | nan% |
 | Sun 25 Oct | 3.47% | 3.92% |
 | Sat 24 Oct | 10.95% | 12.99% |
-| Fri 23 Oct | 4.42% | 3.24% |
+| Fri 23 Oct | 4.32% | 3.34% |
 | Thu 22 Oct | 3.79% | 5.15% |
-| Wed 21 Oct | 5.48% | 6.07% |
+| Wed 21 Oct | 4.64% | 5.69% |
 | Tue 20 Oct | 4.32% | 4.55% |
-| Mon 19 Oct | 4.32% | 3.97% |
+| Mon 19 Oct | 3.49% | 3.20% |
 | Sun 18 Oct | 5.14% | 3.31% |
 | Sat 17 Oct | 3.46% | 5.07% |
 | Fri 16 Oct | 3.04% | 3.01% |
